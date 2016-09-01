@@ -1,5 +1,7 @@
 version: '2'
+
 services:
+
   nginx:
     image: evild/alpine-nginx:1.11.2-libressl
     container_name: wordpress_nginx
@@ -13,6 +15,9 @@ services:
       - 443:443
     networks:
       - front
+    depends_on:
+      - php
+
   php:
     image: evild/alpine-wordpress:4.5.3
     container_name: wordpress_php
@@ -28,9 +33,12 @@ services:
     networks:
       - front
       - back
+    depends_on:
+      - db
+
   db:
-    image: mariadb:10
-    container_name: wordpress_mariadb
+    image: percona:5.7
+    container_name: wordpress_db
     restart: always
     volumes:
       - wordpress-db-data:/var/lib/mysql
@@ -38,6 +46,21 @@ services:
       - MYSQL_ROOT_PASSWORD=password
     networks:
       - back
+
+  ngrok:
+    image: wernight/ngrok
+    container_name: wordpress_ngrok
+    restart: always
+    command: ngrok http nginx:80 -log stdout
+    environment:
+      - NGROK_AUTH=your_auth_token
+    ports:
+      - 4040:4040
+    networks:
+      - front
+    depends_on:
+      - nginx
+
 volumes:
   wordpress-data:
     driver: local
